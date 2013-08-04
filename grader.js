@@ -29,6 +29,7 @@ var sys = require('util');
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
 var HTMLLINK_DEFAULT = "http://google.com";
+var restComplete = false;
 
 var assertFileExists = function(infile) {
     var instr = infile.toString();
@@ -39,9 +40,21 @@ var assertFileExists = function(infile) {
     return instr;
 };
 
+// if the url exists, save the contents of the html page in test.html file
+// check this file against the checks.json file.
 var assertUrlExists = function(infile) {
     var html = ""; 
     var instr = rest.get(infile, function(result) { html = result; });
+    return html;
+}
+
+var getHtml = function(htmllink) {
+    var html = "";
+    var instr = rest.get(htmllink).on('complete', function(result) {
+	html = result;
+	restComplete = true;
+    });
+    console.log(html);
     return html;
 }
 
@@ -74,11 +87,29 @@ if(require.main == module) {
     program
         .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
         .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
-        .option('-u, --url <html_link>', 'URL to check', rest.get, HTMLLINK_DEFAULT)
+        .option('-u, --url <html_link>', 'URL to check', clone(assertUrlExists), HTMLLINK_DEFAULT)
         .parse(process.argv);
+
+    if (process.argv[4].indexOf("-u") !== -1) {
+	var outfile = "web.html";
+	var htmllink = process.argv[5];
+	var html = getHtml(htmllink);
+	while(!restComplete){
+	    getHtml(htmllink);
+	}
+	fs.writeFileSync(outfile, html);
+	program.file = "web.html";
+	console.log("Contains");
+	console.log(htmllink);
+	console.log(html);
+    } else {
+	console.log("DOESNT CONTAIN");
+    }
+
     var checkJson = checkHtmlFile(program.file, program.checks);
     var outJson = JSON.stringify(checkJson, null, 4);
     console.log(outJson);
+    console.log(process.argv);
 } else {
     exports.checkHtmlFile = checkHtmlFile;
 }
