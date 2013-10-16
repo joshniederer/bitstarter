@@ -9,6 +9,7 @@ app.get('/', function(request, response) {
   response.send(buffer.toString('utf-8'));
 });
 
+// windows git check.
 var port = process.env.PORT || 8080;
 app.listen(port, function() {
   console.log("Listening on " + port);
